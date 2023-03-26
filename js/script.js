@@ -10,7 +10,7 @@ function highlightActiveLink() {
   });
 }
 async function displayPopularMovies() {
-  const { results } = await fetchPopularMovies("movie/popular");
+  const { results } = await fetchAPIData("movie/popular");
   console.log(results);
 
   results.forEach((movie) => {
@@ -36,64 +36,212 @@ async function displayPopularMovies() {
     document.querySelector("#popular-movies").appendChild(movieEl);
   });
 }
-async function fetchPopularMovies(endpoint) {
-  const API_KEY = "09c52f4a18a497e85e3c925b2d330612";
-  const BASE_URL = "https://api.themoviedb.org/3/";
-
-  showSpinner();
-  const response = await fetch(
-    `${BASE_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
-  );
-  const data = await response.json();
-  hideSpinner();
-  return data;
-}
-
 async function displayPopularShows() {
-  const { results } = await fetchPopularShows("tv/popular");
+  const { results } = await fetchAPIData("tv/popular");
   console.log(results);
 
   results.forEach((show) => {
     const showEl = document.createElement("div");
     showEl.classList.add("card");
     showEl.innerHTML = `
-    <a href="tv-details.html?${show.id}">
+    <a href="tv-details.html?id=${show.id}">
       ${
         show.poster_path
-          ? `<img src="https://image.tmdb.org/t/p/w500${show.poster_path}" class="card-img-top" alt="${show.name}">`
-          : `<img src='../images/no-image.png' class="card-img-top" alt="${show.name}">'`
+          ? `<img
+        src="https://image.tmdb.org/t/p/w500${show.poster_path}"
+        class="card-img-top"
+        alt="${show.name}"
+      />`
+          : `<img
+      src="../images/no-image.jpg"
+      class="card-img-top"
+      alt="${show.name}"
+    />`
       }
     </a>
     <div class="card-body">
       <h5 class="card-title">${show.name}</h5>
       <p class="card-text">
-        <small class="text-muted">Air date: ${show.first_air_date}</small>
+        <small class="text-muted">Air Date: ${show.first_air_date}</small>
       </p>
     </div>
-    `;
+  `;
     document.querySelector("#popular-shows").appendChild(showEl);
   });
 }
-async function fetchPopularShows(endpoint) {
+
+async function displayShowDetails() {
+  const showId = window.location.search.split("=")[1];
+
+  const show = await fetchAPIData(`tv/${showId}`);
+
+  // Overlay for background image
+  displayBackgroundImage("tv", show.backdrop_path);
+
+  const div = document.createElement("div");
+
+  div.innerHTML = `
+  <div class="details-top">
+  <div>
+  ${
+    show.poster_path
+      ? `<img
+    src="https://image.tmdb.org/t/p/w500${show.poster_path}"
+    class="card-img-top"
+    alt="${show.name}"
+  />`
+      : `<img
+  src="../images/no-image.jpg"
+  class="card-img-top"
+  alt="${show.name}"
+/>`
+  }
+  </div>
+  <div>
+    <h2>${show.name}</h2>
+    <p>
+      <i class="fas fa-star text-primary"></i>
+      ${show.vote_average.toFixed(1)} / 10
+    </p>
+    <p class="text-muted">Last Air Date: ${show.last_air_date}</p>
+    <p>
+      ${show.overview}
+    </p>
+    <h5>Genres</h5>
+    <ul class="list-group">
+      ${show.genres.map((genre) => `<li>${genre.name}</li>`).join("")}
+    </ul>
+    <a href="${
+      show.homepage
+    }" target="_blank" class="btn">Visit show Homepage</a>
+  </div>
+</div>
+<div class="details-bottom">
+  <h2>Show Info</h2>
+  <ul>
+    <li><span class="text-secondary">Number of Episodes:</span> ${
+      show.number_of_episodes
+    }</li>
+    <li><span class="text-secondary">Last Episode To Air:</span> ${
+      show.last_episode_to_air.name
+    }</li>
+    <li><span class="text-secondary">Status:</span> ${show.status}</li>
+  </ul>
+  <h4>Production Companies</h4>
+  <div class="list-group">
+    ${show.production_companies
+      .map((company) => `<span>${company.name}</span>`)
+      .join(", ")}
+  </div>
+</div>
+  `;
+
+  document.querySelector("#show-details").appendChild(div);
+}
+async function displayMovieDetails() {
+  const movieId = window.location.search.slice(1);
+  const movie = await fetchAPIData(`movie/${movieId}`);
+
+  // add backdrop image
+  displayBackgroundImage("movie", movie.backdrop_path);
+  const div = document.createElement("div");
+  div.classList.add("details-top");
+  div.innerHTML = `
+  <div>
+  <a href="movie-details.html?${movie.id}">
+      ${
+        movie.poster_path
+          ? `<img src="https://image.tmdb.org/t/p/w500${movie.poster_path}" class="card-img-top" alt="${movie.name}">`
+          : `<img src='../images/no-image.png' class="card-img-top" alt="${movie.title}">'`
+      }
+    </a>
+    
+  </div>
+  <div>
+    <h2>${movie.title}</h2>
+    <p>
+      <i class="fas fa-star text-primary"></i>
+      <span class="text-primary">${movie.vote_average.toFixed(1)}</span> / 10
+    </p>
+    <p class="text-muted">${movie.release_date}</p>
+    <p>
+      ${movie.overview}
+    </p>
+    <h5>Genres</h5>
+    <ul class="list-group">
+      ${movie.genres.map((genre) => `<li>${genre.name}</li>`).join("")}
+    </ul>
+    <a href="${
+      movie.homepage
+    }" target="_blank" class="btn">Visit Movie Homepage</a>
+  </div>
+</div>
+<div class="details-bottom">
+  <h2>Movie Info</h2>
+  <ul>
+    <li><span class="text-secondary">Budget:</span> $${addCommasToNumber(
+      movie.budget
+    )}</li>
+    <li><span class="text-secondary">Revenue:</span> $${addCommasToNumber(
+      movie.revenue
+    )}</li>
+    <li><span class="text-secondary">Runtime:</span> ${movie.runtime}</li>
+    <li><span class="text-secondary">Status:</span> ${movie.status}</li>
+  </ul>
+  <h4>Production Companies</h4>
+  <div class="list-group">
+  ${movie.production_companies
+    .map((company) => `<span>${company.name}</span>`)
+    .join(", ")}
+</div>
+</div>
+`;
+  document.querySelector("#movie-details").appendChild(div);
+}
+async function fetchAPIData(endpoint) {
   const API_KEY = "09c52f4a18a497e85e3c925b2d330612";
-  const BASE_URL = "https://api.themoviedb.org/3/";
+  const API_URL = "https://api.themoviedb.org/3/";
 
   showSpinner();
   const response = await fetch(
-    `${BASE_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
+    `${API_URL}${endpoint}?api_key=${API_KEY}&language=en-US`
   );
+
   const data = await response.json();
+
   hideSpinner();
+
   return data;
 }
+function displayBackgroundImage(type, backgroundPath) {
+  const overlayDiv = document.createElement("div");
+  overlayDiv.style.backgroundImage = `url(https://image.tmdb.org/t/p/original/${backgroundPath})`;
+  overlayDiv.style.backgroundSize = "cover";
+  overlayDiv.style.backgroundPosition = "center";
+  overlayDiv.style.backgroundRepeat = "no-repeat";
+  overlayDiv.style.height = "100vh";
+  overlayDiv.style.width = "100vw";
+  overlayDiv.style.position = "absolute";
+  overlayDiv.style.top = "0";
+  overlayDiv.style.left = "0";
+  overlayDiv.style.zIndex = "-1";
+  overlayDiv.style.opacity = "0.1";
 
+  if (type === "movie") {
+    document.querySelector("#movie-details").appendChild(overlayDiv);
+  } else {
+    document.querySelector("#show-details").appendChild(overlayDiv);
+  }
+}
 function showSpinner() {
   document.querySelector(".spinner").classList.add("show");
 }
 function hideSpinner() {
   document.querySelector(".spinner").classList.remove("show");
 }
-
+function addCommasToNumber(number) {
+  return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
 function init() {
   switch (global.currentPage) {
     case "/":
@@ -110,10 +258,10 @@ function init() {
       console.log("search");
       break;
     case "/tv-details.html":
-      console.log("tv");
+      displayShowDetails();
       break;
     case "/movie-details.html":
-      console.log("movies");
+      displayMovieDetails();
       break;
   }
 }
